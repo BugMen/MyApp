@@ -1,0 +1,33 @@
+public void PostAddNewOrder(String token, DeliveryOrderModel form, final Context context, final DataCallBack<DeliveryOrderModel> callBack) {
+
+        String url = UrlFactor.getPlan_PostAddNewOrder(token);
+        Gson gson = GsonFactor.CreateNotDate();
+        String postJson = gson.toJson(form);
+        try {
+            OkHttpHelper.getInstance().asynPost(url, postJson, true, new StringCallback() {
+                @Override
+                public void onError(Call call, Exception e, int id) {
+                    callBack.onError(context, id + "", context.getResources().getString(R.string.request_failure_title), e.getMessage());
+                }
+
+                @Override
+                public void onResponse(String response, int id) {
+                    if (response != null && !response.isEmpty()) {
+                        Gson gson = GsonFactor.CreateForDateFormate();//   Gson反序列化
+                        Result<DeliveryOrderModel> result
+                                = gson.fromJson(response, new TypeToken<Result<DeliveryOrderModel>>() {
+                        }.getType());
+
+                        if (result.StateCode == EnumOXResultState.Success.getValue()) {
+                            callBack.onSuccess(result.JsonData);
+                        } else {
+                            //失败消息提示
+                            callBack.onError(context, result.StateCode + "", context.getResources().getString(R.string.request_result_no_success), result.Message);
+                        }
+                    }
+                }
+            });
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }

@@ -1,0 +1,8 @@
+如果是第一次提交git init
+  git remote add origin 远程仓库地址
+  git status
+  git add .
+  git commit -m "提交信息"
+  git fetch  (查看本地与远程代码是否有冲突) 
+  git rebase  origin/master --continue
+  git push origin master

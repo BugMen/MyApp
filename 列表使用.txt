@@ -1,0 +1,181 @@
+package com.aoxing.landy.ausapp.ViewPlan;
+
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.Handler;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
+import android.view.View;
+import android.widget.ImageView;
+
+import com.aoxing.landy.ausapp.BLL.AppSetting;
+import com.aoxing.landy.ausapp.BLL.OXPlanBLL;
+import com.aoxing.landy.ausapp.BaseActivity;
+import com.aoxing.landy.ausapp.Models.DataCallBack;
+import com.aoxing.landy.ausapp.Models.DeliveryFootballMatchPlan.ViewDFMPlanNotStartModel;
+import com.aoxing.landy.ausapp.Models.Result;
+import com.aoxing.landy.ausapp.R;
+import com.aoxing.landy.ausapp.ViewPlan.PlanDetailListMoudle.PlanDetailListAdapter;
+import com.chad.library.adapter.base.BaseQuickAdapter;
+import com.chad.library.adapter.base.listener.OnItemClickListener;
+
+import net.tsz.afinal.annotation.view.ViewInject;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Created by Administrator on 2016/7/27 0027.
+ */
+public class PlanListActivity extends BaseActivity implements BaseQuickAdapter.RequestLoadMoreListener, SwipeRefreshLayout.OnRefreshListener {
+
+    @ViewInject(id = R.id.plan_detail_toolbar)
+    private Toolbar toolbar;
+    @ViewInject(id = R.id.swiperefreshlayout_activity_plan_detail)
+    private SwipeRefreshLayout swipeRefreshLayoutPlanDetail;
+    @ViewInject(id = R.id.recyclerview_activity_plan_detail)
+    private RecyclerView recyclerViewPlanDetail;
+    @ViewInject(id = R.id.imageview_activity_plan_list_nodata)
+    private ImageView imageViewNoData;
+
+    // 未开奖数据列表
+    private List<ViewDFMPlanNotStartModel> viewDFMPlanNotStartList = new ArrayList<ViewDFMPlanNotStartModel>();
+    // 未开奖数据适配
+    private PlanDetailListAdapter notStartAdapter;
+
+    private int membershipId; // 方案主ID
+    private int areaType; // 查询
+    private int skip = 0; // 开始提取位置
+    private int take = AppSetting.MiddlePageSize; // 提取数
+    private int TOTAL_COUNTER = 0; // 总内容量
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_planlist);
+
+        initToolBar(toolbar);
+
+        membershipId = getIntent().getIntExtra("memberShipId", 0);
+
+        initAdapter();
+        initSwipeRefreshLayout(swipeRefreshLayoutPlanDetail);
+        initRecyclerView(recyclerViewPlanDetail);
+    }
+
+    /**
+     * 初始化SwipeRefreshLayout
+     *
+     * @param swipeRefreshLayout
+     */
+    private void initSwipeRefreshLayout(final SwipeRefreshLayout swipeRefreshLayout) {
+        swipeRefreshLayout.setColorSchemeColors(getResources().getColor(R.color.colorPrimary));
+        swipeRefreshLayout.post(new Runnable() {
+            @Override
+            public void run() {
+                swipeRefreshLayout.setRefreshing(true);
+                LoadDataNoStart(areaType, skip, take);
+            }
+        });
+        swipeRefreshLayout.setOnRefreshListener(this);
+    }
+
+    /**
+     * 初始化RecyclerView
+     *
+     * @param recyclerView
+     */
+    private void initRecyclerView(RecyclerView recyclerView) {
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.addOnItemTouchListener(new OnItemClickListener() {
+            @Override
+            public void onSimpleItemClick(BaseQuickAdapter adapter, View view, int position) {
+                ViewDFMPlanNotStartModel item = (ViewDFMPlanNotStartModel) adapter.getItem(position);
+                Intent intent = new Intent(PlanListActivity.this, PlanDetailActivity.class);
+                intent.putExtra("deliveryId", item.Delivery_Id);
+                startActivity(intent);
+            }
+        });
+    }
+
+    /**
+     * 刷新
+     */
+    @Override
+    public void onRefresh() {
+        notStartAdapter.setEnableLoadMore(false);
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                skip = 0;
+                LoadDataNoStart(areaType, skip, take);
+                skip = notStartAdapter.getData().size();
+                notStartAdapter.setEnableLoadMore(true);
+            }
+        }, 1);
+    }
+
+    /**
+     * 加载更多
+     */
+    @Override
+    public void onLoadMoreRequested() {
+        recyclerViewPlanDetail.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (skip >= TOTAL_COUNTER) {
+                    notStartAdapter.loadMoreEnd(true);
+                } else {
+                    LoadDataNoStart(areaType, skip, take);
+                }
+            }
+        }, 1);
+    }
+
+    /**
+     * 初始化Adapter
+     */
+    private void initAdapter() {
+        notStartAdapter = new PlanDetailListAdapter(viewDFMPlanNotStartList);
+        recyclerViewPlanDetail.setAdapter(notStartAdapter);
+        notStartAdapter.setOnLoadMoreListener(this);
+    }
+
+    /**
+     * 载入未开奖数据
+     *
+     * @param areaType
+     */
+    private void LoadDataNoStart(int areaType, final int i, int j) {
+        OXPlanBLL.Instance().getDFMPlanNotOnByPublisherId(token.Id, membershipId, i, j, areaType, PlanListActivity.this, new DataCallBack<Result<List<ViewDFMPlanNotStartModel>>>() {
+            @Override
+            public void onSuccess(final Result<List<ViewDFMPlanNotStartModel>> viewDFMPlanNotStartModels) {
+                if (viewDFMPlanNotStartModels.JsonData != null) {
+                    TOTAL_COUNTER = viewDFMPlanNotStartModels.TotalCount;
+                    if (i > 0) {
+                        notStartAdapter.addData(viewDFMPlanNotStartModels.JsonData);
+                    } else {
+                        notStartAdapter.setNewData(viewDFMPlanNotStartModels.JsonData);
+                    }
+                    skip = notStartAdapter.getData().size();
+                    notStartAdapter.loadMoreComplete();
+                }
+                swipeRefreshLayoutPlanDetail.setRefreshing(false);
+                if (TOTAL_COUNTER == 0) {
+                    imageViewNoData.setVisibility(View.VISIBLE);
+                } else {
+                    imageViewNoData.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onError(Context context, String errorCode, String title, String message) {
+                super.onError(context, errorCode, title, message);
+            }
+        });
+    }
+}
