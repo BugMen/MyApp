@@ -1,0 +1,30 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!--基础主题-->
+    <style name="BaseAppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <!-- Activity主题 -->
+    <style name="activityTheme" parent="BaseAppTheme">
+        <!--Statusbar color-->
+        <item name="colorPrimaryDark">@color/colorPrimary</item>
+        <!-- Actionbar color -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <!--windowBackground color-->
+        <item name="android:windowBackground">@color/colorWhite</item>
+        <!--textColorPrimary color-->
+        <item name="android:textColorPrimary">@color/colorWhite</item>
+        <!--navigationBarColor color-->
+        <item name="android:navigationBarColor" tools:targetApi="lollipop">@color/colorBlack</item>
+        <!--colorAccent color-->
+        <item name="colorAccent">@color/colorPrimary</item>
+    </style>
+
+    <!--Guide主题-->
+    <style name="GuideFullScreen" parent="BaseAppTheme">
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+</resources>
